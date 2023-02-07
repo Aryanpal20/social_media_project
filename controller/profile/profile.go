@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -20,6 +21,11 @@ type Message struct {
 	Lname     string    `json:"lname"`
 	Img       string    `json:"img_url"`
 	Create_AT time.Time `json:"createdat"`
+}
+type pagination struct {
+	NextPage     int
+	PreviousPage int
+	CurrentPage  int
 }
 
 func ProfileCreate(c *gin.Context) {
@@ -106,10 +112,18 @@ func ProfileUpdate(c *gin.Context) {
 func GetProfile(c *gin.Context) {
 	var profile []pro.Profile
 	page := 1
-	size := 2
-	offset := (page - 1) * size
-	if err := database.Database.Limit(size).Offset(offset).Find(&profile).Error; err != nil {
-		log.Panic(err)
+	pagestr := c.Query("page")
+	if pagestr != "" {
+		page, _ = strconv.Atoi(pagestr)
 	}
-	c.JSON(http.StatusAccepted, gin.H{"Data": profile})
+	offset := (page - 1) * 2
+
+	database.Database.Limit(2).Offset(offset).Find(&profile)
+	c.JSON(http.StatusAccepted, gin.H{"Data": profile,
+		"pagination": pagination{
+			NextPage:     page + 1,
+			PreviousPage: page - 1,
+			CurrentPage:  page,
+		}})
+
 }

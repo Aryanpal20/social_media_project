@@ -18,6 +18,7 @@ func main() {
 	r := gin.Default()
 	// r.Use(middelware.AuthRequired())
 	r.Static("/static", "./static")
+
 	r.POST("/login", auth.Login)
 	r.POST("/register", auth.Register)
 	r.POST("/profilecreate", middelware.AuthRequired(), profile.ProfileCreate)
@@ -29,8 +30,8 @@ func main() {
 	r.DELETE("/postdelete/:id", middelware.AuthRequired(), post.PostsDelete)
 	r.POST("/postcomment", middelware.AuthRequired(), comment.PostComment)
 	r.PATCH("/updatecomment/:id", middelware.AuthRequired(), comment.UpdateComment)
-	r.DELETE("/deletecomment/:id", middelware.AuthRequired(), comment.DeleteComment)
-	r.POST("/postreplycomment", middelware.AuthRequired(), reply.PostReplyComment)
+	r.DELETE("//:id", middelware.AuthRequired(), comment.DeleteComment)
+	r.POST("/postdeletecommentreplycomment", middelware.AuthRequired(), reply.PostReplyComment)
 	r.PATCH("/updatereplycomment/:id", middelware.AuthRequired(), reply.UpdateReplyComment)
 	r.DELETE("/deletereplycomment/:id", middelware.AuthRequired(), reply.DeleteReplyComment)
 	r.POST("/postfollower", middelware.AuthRequired(), follow.PostFollower)
