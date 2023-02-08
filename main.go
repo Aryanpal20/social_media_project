@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 )
 
@@ -16,7 +15,7 @@ var upgrader = websocket.Upgrader{
 var clients []websocket.Conn
 
 func main() {
-	r := gin.Default()
+
 	// create  endpoint for websocket
 	http.HandleFunc("/echo", func(w http.ResponseWriter, r *http.Request) {
 		// initlize config
@@ -48,6 +47,6 @@ func main() {
 		// w, r is write and delete your index.html
 	})
 	fmt.Println("your server run 8080")
-	// http.ListenAndServe(":8080", nil)
-	r.Run()
+	http.ListenAndServe(":8080", nil)
+
 }
