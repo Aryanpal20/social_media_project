@@ -1,10 +1,12 @@
 package middelware
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"gin/controller/auth"
+	"io"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -34,60 +36,59 @@ func AuthRequired() gin.HandlerFunc {
 	}
 }
 
-const (
-	DEFAULT_PAGE_TEXT    = "page"
-	DEFAULT_SIZE_TEXT    = "size"
-	DEFAULT_PAGE         = "1"
-	DEFAULT_PAGE_SIZE    = "10"
-	DEFAULT_MIN_PAGESIZE = 10
-	DEFAULT_MAX_PAGESIZE = 100
-)
-
-func Default() gin.HandlerFunc {
-	return New(
-		DEFAULT_PAGE_TEXT,
-		DEFAULT_SIZE_TEXT,
-		DEFAULT_PAGE,
-		DEFAULT_PAGE_SIZE,
-		DEFAULT_MIN_PAGESIZE,
-		DEFAULT_MAX_PAGESIZE,
-	)
+type NotificationPayload struct {
+	To           string `json:"to"`
+	Notification string `json:"notification"`
+}
+type nopCloser struct {
+	io.Reader
 }
 
-func New(pageText, sizeText, defaultPage, defaultPageSize string, minPageSize, maxPageSize int) gin.HandlerFunc {
+func (nopCloser) Close() error { return nil }
+
+func Notification() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Extract the page from the query string and convert it to an integer
-		pageStr := c.DefaultQuery(pageText, defaultPage)
-		page, err := strconv.Atoi(pageStr)
+
+		var notificationPayload NotificationPayload
+
+		// Set up HTTP request to FCM API
+		url := "https://accounts.google.com/o/oauth2/auth"
+		client := &http.Client{}
+		req, err := http.NewRequest("POST", url, nil)
 		if err != nil {
-			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "page number must be an integer"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
-		// Validate for positive page number
-		if page < 0 {
-			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "page number must be positive"})
-			return
-		}
+		// Add required headers for FCM API
+		req.Header.Add("Authorization", "AIzaSyDAruyto8bQJeI18giFauD9wz9tqascG4o")
+		req.Header.Add("Content-Type", "application/json")
 
-		// Extract the size from the query string and convert it to an integer
-		sizeStr := c.DefaultQuery(sizeText, defaultPageSize)
-		size, err := strconv.Atoi(sizeStr)
+		// Encode notification payload as JSON
+		payload, err := json.Marshal(notificationPayload)
 		if err != nil {
-			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "page size must be an integer"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		// Add JSON payload to request body
+		req.Body = nopCloser{bytes.NewReader(payload)}
+		// Send HTTP request to FCM API
+		res, err := client.Do(req)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error1": err.Error()})
 			return
 		}
 
-		// Validate for min and max page size
-		if size < minPageSize || size > maxPageSize {
-			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "page size must be between " + strconv.Itoa(minPageSize) + " and " + strconv.Itoa(maxPageSize)})
+		defer res.Body.Close()
+
+		// Check HTTP response status code
+		if res.StatusCode != http.StatusOK {
+			c.JSON(res.StatusCode, gin.H{"error": fmt.Sprintf("FCM API responded with status code %d", res.StatusCode)})
 			return
 		}
 
-		// Set the page and size in the gin context
-		c.Set(pageText, page)
-		c.Set(sizeText, size)
-
+		c.JSON(http.StatusOK, gin.H{"message": "Notification sent"})
+		fmt.Println(notificationPayload.Notification)
 		c.Next()
 	}
 }

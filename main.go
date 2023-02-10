@@ -28,12 +28,13 @@ func main() {
 	r.PATCH("/captionupdate/:id", middelware.AuthRequired(), post.CaptionUpdate)
 	r.GET("/postget", middelware.AuthRequired(), post.PostsGet)
 	r.DELETE("/postdelete/:id", middelware.AuthRequired(), post.PostsDelete)
-	r.POST("/postcomment", middelware.AuthRequired(), comment.PostComment)
+	r.POST("/postcomment", middelware.AuthRequired(), middelware.Notification(), comment.PostComment)
 	r.PATCH("/updatecomment/:id", middelware.AuthRequired(), comment.UpdateComment)
-	r.DELETE("//:id", middelware.AuthRequired(), comment.DeleteComment)
-	r.POST("/postdeletecommentreplycomment", middelware.AuthRequired(), reply.PostReplyComment)
+	r.DELETE("/deletecomment/:id", middelware.AuthRequired(), comment.DeleteComment)
+	r.POST("/replycomment", middelware.AuthRequired(), middelware.Notification(), reply.PostReplyComment)
 	r.PATCH("/updatereplycomment/:id", middelware.AuthRequired(), reply.UpdateReplyComment)
 	r.DELETE("/deletereplycomment/:id", middelware.AuthRequired(), reply.DeleteReplyComment)
 	r.POST("/postfollower", middelware.AuthRequired(), follow.PostFollower)
 	r.Run()
+
 }
